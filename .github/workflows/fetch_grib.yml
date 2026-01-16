@@ -1,4 +1,4 @@
-name: Fetch ICON-RUC GRIB2 and Generate PNGs
+name: Fetch MOS GRIB2 and Generate PNGs
 
 on:
   workflow_dispatch:
