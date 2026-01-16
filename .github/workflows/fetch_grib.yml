@@ -49,10 +49,19 @@ jobs:
         run: |
           mkdir -p data/warnmos
           cd data/warnmos
+      
+          # Prüfen, ob RUN 04,09,16 oder 21 ist
+          if [[ "$RUN" == "04" || "$RUN" == "09" || "$RUN" == "16" || "$RUN" == "21" ]]; then
+            URL="https://opendata.dwd.de/weather/local_forecasts/warnmos/WarnMOSLong${DATE}${RUN}00.grb2.bz2"
+            echo "RUN=$RUN → Lade Long-Version: $URL"
+          else
             URL="https://opendata.dwd.de/weather/local_forecasts/warnmos/WarnMOS${DATE}${RUN}00.grb2.bz2"
-            wget -q -O warnmos_${DATE}${RUN}.grb2.bz2 "$URL" || echo "Datei $URL nicht verfügbar, überspringe..."
-            if [ -f "warnmos_${DATE}${RUN}.grb2.bz2" ]; then
-              bunzip2 -f warnmos_${DATE}${RUN}.grb2.bz2
+            echo "RUN=$RUN → Lade normale Version: $URL"
+          fi
+      
+          wget -q -O warnmos_${DATE}${RUN}.grb2.bz2 "$URL" || echo "Datei $URL nicht verfügbar, überspringe..."
+          if [ -f "warnmos_${DATE}${RUN}.grb2.bz2" ]; then
+            bunzip2 -f warnmos_${DATE}${RUN}.grb2.bz2
           fi
 
       
