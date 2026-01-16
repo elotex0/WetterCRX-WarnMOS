@@ -17,7 +17,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # Eingabe / Ausgabe
 # ------------------------------
 DATAPATH = "data/warnmos"
-OUTPUT_DIR = "output/glatteis"
+OUTPUT_DIR = "warnmos/glatteis"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Deutschland-Extent
