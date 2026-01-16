@@ -1,0 +1,8 @@
+cfgrib
+xarray
+matplotlib
+cartopy
+geopandas
+shapely
+pandas
+adjustText
