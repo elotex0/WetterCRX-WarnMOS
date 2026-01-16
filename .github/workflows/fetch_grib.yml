@@ -70,8 +70,8 @@ jobs:
     needs: fetch_and_generate
     strategy:
       matrix:
-        variable: [glätte, glatteis, gewitter, frost]
-      max-parallel: 4
+        variable: [glätte, glatteis, gewitter, frost, nebel]
+      max-parallel: 5
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
