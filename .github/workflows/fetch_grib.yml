@@ -92,17 +92,15 @@ jobs:
           
       - name: Generate PNGs for ${{ matrix.variable }}
         run: |
-          mkdir -p iconruc/${{ matrix.variable }}
+          mkdir -p warnmos/${{ matrix.variable }}
           echo "Running script for ${{ matrix.variable }}"
-          python scripts/${{ matrix.variable }}.py \
-            data/${{ matrix.variable }} \
-            iconruc/${{ matrix.variable }}
+          python scripts/${{ matrix.variable }}.py 
 
       - name: Upload PNGs artifact
         uses: actions/upload-artifact@v4
         with:
-          name: iconruc-${{ matrix.variable }}
-          path: iconruc/${{ matrix.variable }}
+          name: warnmos-${{ matrix.variable }}
+          path: warnmos/${{ matrix.variable }}
 
 
 
