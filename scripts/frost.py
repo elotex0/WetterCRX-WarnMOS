@@ -156,7 +156,7 @@ for filename in files:
         footer_ax = fig.add_axes([0.0, (legend_bottom_px + legend_h_px)/FIG_H_PX, 1.0,
                                   (BOTTOM_AREA_PX - legend_h_px - legend_bottom_px)/FIG_H_PX])
         footer_ax.axis("off")
-        left_text = f"Temperatur < 0°C Wahrscheinlichkeit (%)\nWarnMOS ({run_time_utc.strftime('%Hz') if run_time_utc else 'run'}), Deutscher Wetterdienst"
+        left_text = f"Frost Wahrscheinlichkeit (%)\nWarnMOS ({run_time_utc.strftime('%Hz') if run_time_utc else 'run'}), Deutscher Wetterdienst"
         footer_ax.text(0.01, 0.85, left_text, fontsize=12, fontweight="bold", va="top", ha="left")
         footer_ax.text(0.734, 0.92, "Prognose für:", fontsize=12, va="top", ha="left", fontweight="bold")
         footer_ax.text(0.99, 0.68, f"{valid_time_local:%d.%m.%Y %H:%M} Uhr",
