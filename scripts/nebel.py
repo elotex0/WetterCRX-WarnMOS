@@ -4,12 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-import matplotlib.colors as mcolors
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import pandas as pd
 from matplotlib import patheffects
 from zoneinfo import ZoneInfo
 import warnings
+from pyproj import Proj, Transformer
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -21,7 +21,7 @@ OUTPUT_DIR = "warnmos/nebel"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Deutschland-Extent
-extent = [5.0, 16.0, 47.0, 56.0]
+extent = [5, 16, 47, 56]
 
 # Städte
 cities = pd.DataFrame({
@@ -34,7 +34,7 @@ cities = pd.DataFrame({
 })
 
 # Frost-Wahrscheinlichkeit Farben
-fz_bounds = [0, 1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 99]
+fz_bounds = [0, 1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
 colors = ListedColormap([
     "#FE9226", "#FFC02B", "#FFEE32", "#DDE02D", "#BBD629",
@@ -45,6 +45,7 @@ colors = ListedColormap([
 fz_cmap = colors
 fz_norm = BoundaryNorm(fz_bounds, fz_cmap.N)
 
+
 # ------------------------------
 # Kartenparameter (klein, wie im Beispiel)
 # ------------------------------
@@ -52,6 +53,17 @@ FIG_W_PX, FIG_H_PX = 880, 830
 BOTTOM_AREA_PX = 179
 TOP_AREA_PX = FIG_H_PX - BOTTOM_AREA_PX
 TARGET_ASPECT = FIG_W_PX / TOP_AREA_PX
+
+
+# ------------------------------
+# Polar Stereographic Projektion definieren
+# ------------------------------
+# Basierend auf den GRIB-Parametern:
+# LoV = 10° (orientation)
+# LaD = 60° (standard parallel, typical for DWD)
+proj_ps = Proj(proj='stere', lat_0=90, lon_0=10, lat_ts=60, x_0=0, y_0=0, ellps='WGS84')
+proj_geo = Proj(proj='latlong', datum='WGS84')
+transformer = Transformer.from_proj(proj_ps, proj_geo, always_xy=True)
 
 # ------------------------------
 # GRIB-Dateien durchgehen
@@ -71,12 +83,27 @@ for filename in files:
     else:
         n_steps = 1
 
-    lon = ds["longitude"].values
-    lat = ds["latitude"].values
-    if lon.ndim == 1 and lat.ndim == 1:
-        lon2d, lat2d = np.meshgrid(lon, lat)
-    else:
-        lon2d, lat2d = lon, lat
+    # Native Grid-Koordinaten aus GRIB-Parametern berechnen
+    # First point: 46.957°N, 3.594°E
+    # Dx, Dy = 1000m = 1km
+    nx, ny = 900, 900
+    dx, dy = 1000.0, 1000.0  # in Metern
+    
+    # Ersten Punkt in Projektion transformieren
+    x0, y0 = proj_ps(3.594, 46.957)
+    
+    # Grid erstellen
+    x = x0 + np.arange(nx) * dx
+    y = y0 + np.arange(ny) * dy
+    x_grid, y_grid = np.meshgrid(x, y)
+    
+    # Zurück in geografische Koordinaten transformieren
+    print("Berechne geografische Koordinaten...")
+    lon2d, lat2d = transformer.transform(x_grid, y_grid)
+    
+    print("lon-range:", lon2d.min(), lon2d.max())
+    print("lat-range:", lat2d.min(), lat2d.max())
+
 
     # Laufzeit
     if 'time' in ds:
@@ -92,22 +119,21 @@ for filename in files:
     for step in range(n_steps):
         if data.ndim == 3:
             data_plot = data[step].values
-
-            # Step-Werte auslesen
+            
             if 'step' in ds:
-                step_val = ds['step'].values[step]  # kann scalar oder np.timedelta64 sein
-                # Prüfen Typ
+                step_val = ds['step'].values[step]
                 if isinstance(step_val, np.timedelta64):
                     valid_time_utc = run_time_utc + pd.to_timedelta(step_val)
                 else:
-                    # Falls in Sekunden (häufig)
                     valid_time_utc = run_time_utc + pd.to_timedelta(step_val, unit='s')
             else:
-                # Fallback: Step als Stunden
                 valid_time_utc = run_time_utc + pd.to_timedelta(step, unit='h')
 
-            # In lokale Zeit umrechnen
             valid_time_local = valid_time_utc.tz_localize("UTC").astimezone(ZoneInfo("Europe/Berlin"))
+        else:
+            data_plot = data.values
+            valid_time_local = run_time_utc.tz_localize("UTC").astimezone(ZoneInfo("Europe/Berlin"))
+
 
 
 
@@ -129,7 +155,14 @@ for filename in files:
         ax.add_feature(cfeature.COASTLINE)
 
         # Frost-Wahrscheinlichkeit plotten
-        im = ax.pcolormesh(lon2d, lat2d, data_plot, cmap=fz_cmap, norm=fz_norm, shading="auto")
+        print(f"Plotte Step {step}...")
+        # 1. Basisfarbe über die ganze Karte
+        ax.contourf(lon2d, lat2d, np.full_like(data_plot, fz_bounds[0]),
+                    levels=fz_bounds, cmap=fz_cmap, norm=fz_norm, extend='neither')
+
+        # 2. Eigentliche Daten darüber plotten
+        im = ax.contourf(lon2d, lat2d, data_plot,
+                        levels=fz_bounds, cmap=fz_cmap, norm=fz_norm, extend='neither')
 
         # Städte plotten
         for _, city in cities.iterrows():
